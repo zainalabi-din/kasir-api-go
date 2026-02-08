@@ -57,15 +57,14 @@ func main() {
 	createTable()
 
 	// Routing
-	// Routing
-	http.HandleFunc("/produk", authMiddleware(produkHandler))
-	http.HandleFunc("/produk/", authMiddleware(produkByIDHandler))
+	http.HandleFunc("/produk", enableCORS(authMiddleware(produkHandler)))
+	http.HandleFunc("/produk/", enableCORS(authMiddleware(produkByIDHandler)))
 
-	http.HandleFunc("/transaksi", authMiddleware(transaksiHandler))
-	http.HandleFunc("/laporan", authMiddleware(laporanHandler))
+	http.HandleFunc("/transaksi", enableCORS(authMiddleware(transaksiHandler)))
+	http.HandleFunc("/laporan", enableCORS(authMiddleware(laporanHandler)))
 
-	http.HandleFunc("/register", registerHandler)
-	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/register", enableCORS(registerHandler))
+	http.HandleFunc("/login", enableCORS(loginHandler))
 
 	fmt.Println("SERVER BARU JWT AKTIF 🔐🔥 http://localhost:8080")
 	port := os.Getenv("PORT")
@@ -369,4 +368,22 @@ func laporanHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(list)
+}
+
+// ================= CORS =================
+
+func enableCORS(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next(w, r)
+	}
 }

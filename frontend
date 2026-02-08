@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Kasir Online</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+
+    .box {
+      background: white;
+      padding: 20px;
+      max-width: 400px;
+      margin: auto;
+      border-radius: 5px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box" id="loginBox">
+  <h2>Login Kasir</h2>
+
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+
+  <button onclick="login()">Login</button>
+</div>
+
+
+<div class="box" id="appBox" style="display:none">
+
+  <h2>Produk</h2>
+
+  <button onclick="loadProduk()">Refresh</button>
+
+  <table id="produkTable">
+    <tr>
+      <th>ID</th>
+      <th>Nama</th>
+      <th>Harga</th>
+      <th>Stok</th>
+    </tr>
+  </table>
+
+</div>
+
+
+<script>
+
+const API = "https://kasir-api-go-production-7afc.up.railway.app";
+
+let token = "";
+
+
+async function login() {
+
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  const res = await fetch(API + "/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      username,
+      password
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.token) {
+
+    token = data.token;
+
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("appBox").style.display = "block";
+
+    loadProduk();
+
+  } else {
+    alert("Login gagal");
+  }
+
+}
+
+
+async function loadProduk() {
+
+  const res = await fetch(API + "/produk", {
+    headers: {
+      "Authorization": "Bearer " + token
+    }
+  });
+
+  const data = await res.json();
+
+  const table = document.getElementById("produkTable");
+
+  table.innerHTML = `
+    <tr>
+      <th>ID</th>
+      <th>Nama</th>
+      <th>Harga</th>
+      <th>Stok</th>
+    </tr>
+  `;
+
+  data.forEach(p => {
+
+    table.innerHTML += `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.nama}</td>
+        <td>${p.harga}</td>
+        <td>${p.stok}</td>
+      </tr>
+    `;
+
+  });
+
+}
+
+</script>
+
+</body>
+</html>
