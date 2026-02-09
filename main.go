@@ -23,6 +23,12 @@ type Produk struct {
 	Stok  int    `json:"stok"`
 }
 
+type Category struct {
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
@@ -66,6 +72,9 @@ func main() {
 	http.HandleFunc("/register", enableCORS(registerHandler))
 	http.HandleFunc("/login", enableCORS(loginHandler))
 
+	http.HandleFunc("/categories", enableCORS(authMiddleware(categoriesHandler)))
+	http.HandleFunc("/categories/", enableCORS(authMiddleware(categoryByIDHandler)))
+
 	fmt.Println("SERVER BARU JWT AKTIF 🔐🔥 http://localhost:8080")
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -105,10 +114,18 @@ func createTable() {
 		tanggal TEXT
 	);
 	`
+	categoryTable := `
+	CREATE TABLE IF NOT EXISTS categories (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT
+		description TEXT
+	);
+	`
 
 	db.Exec(produkTable)
 	db.Exec(userTable)
 	db.Exec(transaksiTable)
+	db.Exec(categoryTable)
 
 }
 
@@ -260,6 +277,155 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"token": tokenString,
 	})
+}
+
+func categoriesHandler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// GET ALL
+	if r.Method == "GET" {
+
+		rows, err := db.Query("SELECT id,name,description FROM categories")
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		defer rows.Close()
+
+		var list []Category
+
+		for rows.Next() {
+			var c Category
+			rows.Scan(&c.ID, &c.Name, &c.Description)
+			list = append(list, c)
+		}
+
+		json.NewEncoder(w).Encode(list)
+		return
+	}
+
+	// CREATE
+	if r.Method == "POST" {
+
+		var c Category
+		json.NewDecoder(r.Body).Decode(&c)
+
+		_, err := db.Exec(
+			"INSERT INTO categories(name,description) VALUES(?,?)",
+			c.Name, c.Description,
+		)
+
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		json.NewEncoder(w).Encode(Response{
+			Status:  "success",
+			Message: "Category added",
+		})
+
+		return
+	}
+
+	http.Error(w, "Method not allowed", 405)
+}
+
+func categoryByIDHandler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
+	id, _ := strconv.Atoi(idStr)
+
+	// GET DETAIL
+	if r.Method == "GET" {
+
+		var c Category
+
+		err := db.QueryRow(
+			"SELECT id,name,description FROM categories WHERE id=?",
+			id,
+		).Scan(&c.ID, &c.Name, &c.Description)
+
+		if err != nil {
+			http.Error(w, "Data not found", 404)
+			return
+		}
+
+		json.NewEncoder(w).Encode(c)
+		return
+	}
+
+	// UPDATE
+	if r.Method == "PUT" {
+
+		var c Category
+		json.NewDecoder(r.Body).Decode(&c)
+
+		db.Exec(
+			"UPDATE categories SET name=?, description=? WHERE id=?",
+			c.Name, c.Description,
+			id,
+		)
+
+		json.NewEncoder(w).Encode(Response{
+			Status:  "success",
+			Message: "Category updated",
+		})
+
+		return
+	}
+
+	// DELETE
+	if r.Method == "DELETE" {
+
+		db.Exec("DELETE FROM categories WHERE id=?", id)
+
+		json.NewEncoder(w).Encode(Response{
+			Status:  "success",
+			Message: "Category deleted",
+		})
+
+		return
+	}
+
+	http.Error(w, "Method not allowed", 405)
+}
+
+func getCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+
+	rows, err := db.Query("SELECT id, name, description FROM categories")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer rows.Close()
+
+	var categories []Category
+
+	for rows.Next() {
+
+		var c Category
+
+		err := rows.Scan(&c.ID, &c.Name, &c.Description)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		categories = append(categories, c)
+	}
+
+	json.NewEncoder(w).Encode(categories)
 }
 
 // ================= MIDDLEWARE JWT =================
