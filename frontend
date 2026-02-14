@@ -1,77 +1,125 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Kasir Online</title>
-  <style>
-    body {
-      font-family: Arial;
-      background: #f4f4f4;
-      padding: 20px;
-    }
+<meta charset="UTF-8">
+<title>Kasir Online</title>
 
-    .box {
-      background: white;
-      padding: 20px;
-      max-width: 400px;
-      margin: auto;
-      border-radius: 5px;
-    }
+<style>
+body {
+  font-family: Arial;
+  background: #f4f4f4;
+  padding: 20px;
+}
 
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 5px 0;
-    }
+.box {
+  background: white;
+  padding: 20px;
+  max-width: 700px;
+  margin: auto;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
+input, button, select {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+}
 
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-  </style>
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+.menu button {
+  width: auto;
+  margin-right: 10px;
+}
+</style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div class="box" id="loginBox">
   <h2>Login Kasir</h2>
-
   <input id="username" placeholder="Username">
   <input id="password" type="password" placeholder="Password">
-
   <button onclick="login()">Login</button>
 </div>
 
+<!-- APP -->
+<div id="appBox" style="display:none">
 
-<div class="box" id="appBox" style="display:none">
+<div class="box">
 
-  <h2>Produk</h2>
+  <h2>Dashboard</h2>
 
-  <button onclick="loadProduk()">Refresh</button>
+  <div class="menu">
+    <button onclick="showProduk()">Produk</button>
+    <button onclick="showCategories()">Categories</button>
+    <button onclick="showTransaksi()">Transaksi</button>
+  </div>
 
-  <table id="produkTable">
-    <tr>
-      <th>ID</th>
-      <th>Nama</th>
-      <th>Harga</th>
-      <th>Stok</th>
-    </tr>
-  </table>
+  <hr>
+
+  <!-- PRODUK -->
+  <div id="produkSection">
+    <h3>Produk</h3>
+    <button onclick="loadProduk()">Refresh Produk</button>
+
+    <table id="produkTable">
+      <tr>
+        <th>ID</th>
+        <th>Nama</th>
+        <th>Harga</th>
+        <th>Stok</th>
+      </tr>
+    </table>
+  </div>
+
+  <!-- CATEGORY -->
+  <div id="categorySection" style="display:none">
+    <h3>Categories</h3>
+    <button onclick="loadCategories()">Refresh Categories</button>
+
+    <table id="categoryTable">
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </table>
+  </div>
+
+  <!-- TRANSAKSI -->
+  <div id="transaksiSection" style="display:none">
+    <h3>Transaksi</h3>
+
+    <select id="produkSelect"></select>
+    <input id="jumlahInput" type="number" placeholder="Jumlah">
+
+    <button onclick="buatTransaksi()">Proses Transaksi</button>
+
+    <p id="transaksiMsg"></p>
+  </div>
 
 </div>
 
+</div>
 
 <script>
 
 const API = "https://kasir-api-go-production-7afc.up.railway.app";
-
 let token = "";
 
+// ================= LOGIN =================
 
 async function login() {
 
@@ -80,44 +128,62 @@ async function login() {
 
   const res = await fetch(API + "/login", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      username,
-      password
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
   });
 
   const data = await res.json();
 
   if (data.token) {
-
     token = data.token;
 
     document.getElementById("loginBox").style.display = "none";
     document.getElementById("appBox").style.display = "block";
 
     loadProduk();
-
   } else {
     alert("Login gagal");
   }
-
 }
 
+// ================= MENU =================
+
+function hideAll() {
+  document.getElementById("produkSection").style.display = "none";
+  document.getElementById("categorySection").style.display = "none";
+  document.getElementById("transaksiSection").style.display = "none";
+}
+
+function showProduk() {
+  hideAll();
+  document.getElementById("produkSection").style.display = "block";
+  loadProduk();
+}
+
+function showCategories() {
+  hideAll();
+  document.getElementById("categorySection").style.display = "block";
+  loadCategories();
+}
+
+function showTransaksi() {
+  hideAll();
+  document.getElementById("transaksiSection").style.display = "block";
+  loadProduk();
+}
+
+// ================= PRODUK =================
 
 async function loadProduk() {
 
   const res = await fetch(API + "/produk", {
-    headers: {
-      "Authorization": "Bearer " + token
-    }
+    headers: { "Authorization": "Bearer " + token }
   });
 
   const data = await res.json();
 
   const table = document.getElementById("produkTable");
+  const select = document.getElementById("produkSelect");
 
   table.innerHTML = `
     <tr>
@@ -127,6 +193,8 @@ async function loadProduk() {
       <th>Stok</th>
     </tr>
   `;
+
+  select.innerHTML = "";
 
   data.forEach(p => {
 
@@ -139,8 +207,69 @@ async function loadProduk() {
       </tr>
     `;
 
+    select.innerHTML += `
+      <option value="${p.id}">
+        ${p.nama} (Stok: ${p.stok})
+      </option>
+    `;
+  });
+}
+
+// ================= CATEGORY =================
+
+async function loadCategories() {
+
+  const res = await fetch(API + "/categories", {
+    headers: { "Authorization": "Bearer " + token }
   });
 
+  const data = await res.json();
+
+  const table = document.getElementById("categoryTable");
+
+  table.innerHTML = `
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Description</th>
+    </tr>
+  `;
+
+  data.forEach(c => {
+    table.innerHTML += `
+      <tr>
+        <td>${c.id}</td>
+        <td>${c.name}</td>
+        <td>${c.description}</td>
+      </tr>
+    `;
+  });
+}
+
+// ================= TRANSAKSI =================
+
+async function buatTransaksi() {
+
+  const produkId = document.getElementById("produkSelect").value;
+  const jumlah = document.getElementById("jumlahInput").value;
+
+  const res = await fetch(API + "/transaksi", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify({
+      produk_id: parseInt(produkId),
+      jumlah: parseInt(jumlah)
+    })
+  });
+
+  const data = await res.json();
+
+  document.getElementById("transaksiMsg").innerText = data.message;
+
+  loadProduk();
 }
 
 </script>
