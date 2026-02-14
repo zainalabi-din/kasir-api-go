@@ -61,6 +61,8 @@ th, td {
 <div class="nav">
   <button onclick="showProduk()">Produk</button>
   <button onclick="showCategories()">Categories</button>
+  <button onclick="logout()">Logout</button>
+
 </div>
 
 <hr>
@@ -120,10 +122,12 @@ async function login() {
 
   if (data.token) {
 
-    token = data.token;
+  token = data.token;
 
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("appBox").style.display = "block";
+  // Simpan token ke localStorage
+  localStorage.setItem("token", token);
+  document.getElementById("loginBox").style.display = "none"; 
+  document.getElementById("appBox").style.display = "block";
 
     showProduk();
     loadProduk();
@@ -246,6 +250,32 @@ async function buatTransaksi() {
 
   loadProduk(); // refresh stok
 }
+
+// ===== AUTO LOGIN SAAT REFRESH =====
+window.onload = function () {
+  const savedToken = localStorage.getItem("token");
+
+  if (savedToken) {
+    token = savedToken;
+
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("appBox").style.display = "block";
+
+    showProduk();
+    loadProduk();
+  }
+};
+
+function logout() {
+
+  localStorage.removeItem("token");
+  token = "";
+
+  document.getElementById("appBox").style.display = "none";
+  document.getElementById("loginBox").style.display = "block";
+
+}
+
 
 </script>
 

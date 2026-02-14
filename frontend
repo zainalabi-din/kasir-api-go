@@ -119,6 +119,7 @@ th, td {
 const API = "https://kasir-api-go-production-7afc.up.railway.app";
 let token = "";
 
+
 // ================= LOGIN =================
 
 async function login() {
