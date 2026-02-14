@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Kasir Online</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #f4f4f4;
+  padding: 20px;
+}
+
+.box {
+  background: white;
+  padding: 20px;
+  max-width: 500px;
+  margin: auto;
+  border-radius: 5px;
+}
+
+input, button, select {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+}
+
+.nav button {
+  width: 48%;
+}
+</style>
+
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="box" id="loginBox">
+  <h2>Login Kasir</h2>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+
+<!-- APP -->
+<div class="box" id="appBox" style="display:none">
+
+<h2>Dashboard Kasir</h2>
+
+<div class="nav">
+  <button onclick="showProduk()">Produk</button>
+  <button onclick="showCategories()">Categories</button>
+</div>
+
+<hr>
+
+<!-- PRODUK -->
+<div id="produkSection">
+  <h3>Produk</h3>
+  <button onclick="loadProduk()">Refresh Produk</button>
+
+  <table id="produkTable"></table>
+</div>
+
+<!-- CATEGORY -->
+<div id="categorySection" style="display:none">
+  <h3>Categories</h3>
+  <button onclick="loadCategories()">Refresh Categories</button>
+
+  <table id="categoryTable"></table>
+</div>
+
+<hr>
+
+<!-- TRANSAKSI -->
+<div id="transaksiSection">
+  <h3>Transaksi</h3>
+
+  <select id="produkSelect"></select>
+  <input id="jumlahInput" type="number" placeholder="Jumlah">
+
+  <button onclick="buatTransaksi()">Proses Transaksi</button>
+
+  <p id="transaksiMsg"></p>
+</div>
+
+</div>
+
+
+<script>
+
+const API = "https://kasir-api-go-production-7afc.up.railway.app";
+let token = "";
+
+// ================= LOGIN =================
+
+async function login() {
+
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  const res = await fetch(API + "/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  if (data.token) {
+
+    token = data.token;
+
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("appBox").style.display = "block";
+
+    showProduk();
+    loadProduk();
+
+  } else {
+    alert("Login gagal");
+  }
+}
+
+// ================= NAV =================
+
+function showProduk() {
+  document.getElementById("produkSection").style.display = "block";
+  document.getElementById("categorySection").style.display = "none";
+}
+
+function showCategories() {
+  document.getElementById("produkSection").style.display = "none";
+  document.getElementById("categorySection").style.display = "block";
+  loadCategories();
+}
+
+// ================= PRODUK =================
+
+async function loadProduk() {
+
+  const res = await fetch(API + "/produk", {
+    headers: { "Authorization": "Bearer " + token }
+  });
+
+  const data = await res.json();
+
+  const table = document.getElementById("produkTable");
+  const select = document.getElementById("produkSelect");
+
+  table.innerHTML = `
+    <tr>
+      <th>ID</th>
+      <th>Nama</th>
+      <th>Harga</th>
+      <th>Stok</th>
+    </tr>
+  `;
+
+  select.innerHTML = "";
+
+  data.forEach(p => {
+
+    table.innerHTML += `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.nama}</td>
+        <td>${p.harga}</td>
+        <td>${p.stok}</td>
+      </tr>
+    `;
+
+    select.innerHTML += `
+      <option value="${p.id}">
+        ${p.nama} (Stok: ${p.stok})
+      </option>
+    `;
+  });
+}
+
+// ================= CATEGORY =================
+
+async function loadCategories() {
+
+  const res = await fetch(API + "/categories", {
+    headers: { "Authorization": "Bearer " + token }
+  });
+
+  const data = await res.json();
+
+  const table = document.getElementById("categoryTable");
+
+  table.innerHTML = `
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Description</th>
+    </tr>
+  `;
+
+  data.forEach(c => {
+
+    table.innerHTML += `
+      <tr>
+        <td>${c.id}</td>
+        <td>${c.name}</td>
+        <td>${c.description}</td>
+      </tr>
+    `;
+  });
+}
+
+// ================= TRANSAKSI =================
+
+async function buatTransaksi() {
+
+  const produkId = document.getElementById("produkSelect").value;
+  const jumlah = document.getElementById("jumlahInput").value;
+
+  const res = await fetch(API + "/transaksi", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify({
+      produk_id: parseInt(produkId),
+      jumlah: parseInt(jumlah)
+    })
+  });
+
+  const data = await res.json();
+
+  document.getElementById("transaksiMsg").innerText = data.message;
+
+  loadProduk(); // refresh stok
+}
+
+</script>
+
+</body>
+</html>

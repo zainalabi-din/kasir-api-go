@@ -117,7 +117,7 @@ func createTable() {
 	categoryTable := `
 	CREATE TABLE IF NOT EXISTS categories (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT
+		name TEXT,
 		description TEXT
 	);
 	`
